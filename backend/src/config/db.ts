@@ -22,8 +22,9 @@ function parseDatabaseUrl(databaseUrl: string) {
 }
 
 function getDbConfig() {
-  if (process.env.DATABASE_URL) {
-    const fromUrl = parseDatabaseUrl(process.env.DATABASE_URL)
+  const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL
+  if (databaseUrl) {
+    const fromUrl = parseDatabaseUrl(databaseUrl)
     return {
       ...fromUrl,
       waitForConnections: true,
@@ -35,13 +36,13 @@ function getDbConfig() {
   const host = process.env.DB_HOST || process.env.MYSQLHOST
   const user = process.env.DB_USER || process.env.MYSQLUSER
   const password = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || ""
-  const database = process.env.DB_NAME || process.env.MYSQLDATABASE
+  const database = process.env.DB_NAME || process.env.DB_DATABASE || process.env.MYSQLDATABASE
   const portRaw = process.env.DB_PORT || process.env.MYSQLPORT || "3306"
   const port = parseInt(portRaw, 10)
 
   if (!host || !user || !database || Number.isNaN(port)) {
     throw new Error(
-      "Missing DB config. Set DATABASE_URL or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME/DB_PORT (Railway also supports MYSQLHOST/MYSQLUSER/MYSQLPASSWORD/MYSQLDATABASE/MYSQLPORT)."
+      "Missing DB config. Set one of: DATABASE_URL/MYSQL_URL or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME/DB_PORT (Railway also supports MYSQLHOST/MYSQLUSER/MYSQLPASSWORD/MYSQLDATABASE/MYSQLPORT)."
     )
   }
 
