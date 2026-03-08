@@ -4,12 +4,26 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
-const dbConfig = {
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  port: parseInt(process.env.DB_PORT || "3306"),
-  multipleStatements: true,
+function getSeedDbConfig() {
+  const host = process.env.DB_HOST || process.env.MYSQLHOST
+  const user = process.env.DB_USER || process.env.MYSQLUSER
+  const password = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || ""
+  const portRaw = process.env.DB_PORT || process.env.MYSQLPORT || "3306"
+  const port = parseInt(portRaw, 10)
+
+  if (!host || !user || Number.isNaN(port)) {
+    throw new Error(
+      "Missing DB config for seed. Set DB_HOST/DB_USER/DB_PASSWORD/DB_PORT or MYSQLHOST/MYSQLUSER/MYSQLPASSWORD/MYSQLPORT."
+    )
+  }
+
+  return {
+    host,
+    user,
+    password,
+    port,
+    multipleStatements: true,
+  }
 }
 
 async function seed() {
@@ -26,7 +40,7 @@ async function seed() {
 
   try {
     // Connexion sans base de donnÃ©es pour pouvoir la crÃ©er
-    connection = await mysql.createConnection(dbConfig)
+    connection = await mysql.createConnection(getSeedDbConfig())
     console.log("âœ… Connexion Ã©tablie")
 
     // CrÃ©er la base de donnÃ©es
