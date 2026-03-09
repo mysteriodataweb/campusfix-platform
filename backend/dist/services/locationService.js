@@ -17,9 +17,13 @@ async function getLocationById(id) {
     return mapLocationRow(rows[0]);
 }
 async function createLocation(location) {
-    await (0, db_js_1.execute)(`INSERT INTO locations (id, name, building, qr_url, created_at)
-     VALUES (?, ?, ?, ?, ?)`, [location.id, location.name, location.building, location.qr_url, location.created_at]);
-    return location;
+    await (0, db_js_1.execute)(`INSERT INTO locations (id, name, building, qr_url)
+     VALUES (?, ?, ?, ?)`, [location.id, location.name, location.building, location.qr_url]);
+    const created = await getLocationById(location.id);
+    if (!created) {
+        throw new Error("Failed to fetch created location");
+    }
+    return created;
 }
 async function deleteLocation(id) {
     const result = await (0, db_js_1.execute)("DELETE FROM locations WHERE id = ?", [id]);

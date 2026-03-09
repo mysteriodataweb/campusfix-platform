@@ -47,13 +47,12 @@ router.post(
         name,
         building,
         qr_url: `/report?location=${encodeURIComponent(name)}`,
-        created_at: new Date().toISOString(),
       }
 
-      await createLocation(location)
+      const createdLocation = await createLocation(location)
       await addLog(`Location added - ${name} (${building})`, "Super Admin")
 
-      res.json({ success: true, location })
+      res.json({ success: true, location: createdLocation })
     } catch (error) {
       console.error("Create location error:", error)
       res.status(500).json({ error: "Internal server error" })

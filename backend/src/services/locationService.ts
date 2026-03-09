@@ -16,6 +16,8 @@ interface CounterRow extends RowDataPacket {
   value: number
 }
 
+type NewLocation = Omit<Location, "created_at">
+
 export async function getLocations(): Promise<Location[]> {
   const rows = await query<LocationRow[]>("SELECT * FROM locations ORDER BY name")
   return rows.map(mapLocationRow)
@@ -27,13 +29,17 @@ export async function getLocationById(id: string): Promise<Location | null> {
   return mapLocationRow(rows[0])
 }
 
-export async function createLocation(location: Location): Promise<Location> {
+export async function createLocation(location: NewLocation): Promise<Location> {
   await execute(
-    `INSERT INTO locations (id, name, building, qr_url, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [location.id, location.name, location.building, location.qr_url, location.created_at]
+    `INSERT INTO locations (id, name, building, qr_url)
+     VALUES (?, ?, ?, ?)`,
+    [location.id, location.name, location.building, location.qr_url]
   )
-  return location
+  const created = await getLocationById(location.id)
+  if (!created) {
+    throw new Error("Failed to fetch created location")
+  }
+  return created
 }
 
 export async function deleteLocation(id: string): Promise<boolean> {

@@ -183,14 +183,23 @@ export default function AdminPanelPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newLocName, building: newLocBuilding }),
       })
-      const data = await res.json()
-      if (data.success) {
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        toast.error(data?.error || "Failed to add location")
+        return
+      }
+
+      if (data.success && data.location) {
         setLocations((prev) => [...prev, data.location])
         setNewLocName("")
         setNewLocBuilding("")
         setAddDialogOpen(false)
         toast.success("Location added")
+        return
       }
+
+      toast.error("Failed to add location")
     } catch {
       toast.error("Failed to add location")
     } finally {
