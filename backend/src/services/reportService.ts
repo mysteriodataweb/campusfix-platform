@@ -37,8 +37,8 @@ export async function getReportById(id: string): Promise<Report | null> {
 
 export async function createReport(report: Omit<Report, "updated_at">): Promise<Report> {
   await execute(
-    `INSERT INTO reports (id, location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO reports (id, location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       report.id,
       report.location,
@@ -49,7 +49,6 @@ export async function createReport(report: Omit<Report, "updated_at">): Promise<
       report.reporter_email || null,
       report.status,
       report.technician_notified,
-      report.created_at,
     ]
   )
   return report as Report

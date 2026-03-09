@@ -18,8 +18,8 @@ async function getReportById(id) {
     return mapReportRow(rows[0]);
 }
 async function createReport(report) {
-    await (0, db_js_1.execute)(`INSERT INTO reports (id, location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+    await (0, db_js_1.execute)(`INSERT INTO reports (id, location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
         report.id,
         report.location,
         report.issue_type,
@@ -29,7 +29,6 @@ async function createReport(report) {
         report.reporter_email || null,
         report.status,
         report.technician_notified,
-        report.created_at,
     ]);
     return report;
 }
