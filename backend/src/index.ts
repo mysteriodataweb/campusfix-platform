@@ -39,6 +39,17 @@ app.use(
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
+app.use((req, res, next) => {
+  const start = Date.now()
+  res.on("finish", () => {
+    const durationMs = Date.now() - start
+    const origin = req.headers.origin || "-"
+    console.log(
+      `[HTTP] ${req.method} ${req.originalUrl} ${res.statusCode} origin=${origin} ${durationMs}ms`
+    )
+  })
+  next()
+})
 
 // Routes
 app.use("/api/auth", authRoutes)
