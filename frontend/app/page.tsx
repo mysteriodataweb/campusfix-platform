@@ -93,6 +93,7 @@ export default function HomePage() {
         <footer className="border-t border-[#E5E7EB] py-6 text-center">
           <p className="text-xs text-muted-foreground">
             CampusFix &mdash; Smart Campus QR Code Maintenance System
+            @Alfred BIAM & Sylviane YAMEOGO all rights reserved. Designed for seamless issue reporting and tracking on campus.
           </p>
         </footer>
       </main>
