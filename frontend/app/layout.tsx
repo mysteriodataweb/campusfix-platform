@@ -13,20 +13,7 @@ export const metadata: Metadata = {
     google: 'notranslate',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/icon-dark-32x32.svg',
     apple: '/apple-icon.png',
   },
 }
