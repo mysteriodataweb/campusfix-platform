@@ -19,11 +19,18 @@ import { testConnection } from "./config/db.js"
 const app = express()
 const PORT = process.env.PORT || 5000
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://fix-px1j.vercel.app"
+const ALLOWED_ORIGINS = FRONTEND_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
 
 // Middleware
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin(origin, callback) {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true)
+        return
+      }
+      callback(new Error("Not allowed by CORS"))
+    },
     credentials: true,
   })
 )

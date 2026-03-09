@@ -1,5 +1,6 @@
-// API configuration for frontend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+// Always call Next.js local /api proxy from the browser.
+// next.config.mjs rewrites /api/* to the backend URL.
+const API_BASE_URL = "/api"
 
 interface FetchOptions extends RequestInit {
   body?: string | FormData
