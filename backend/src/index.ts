@@ -21,16 +21,32 @@ import { testConnection } from "./config/db.js"
 const app = express()
 const PORT = process.env.PORT || 5000
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://fix-px1j.vercel.app"
-const ALLOWED_ORIGINS = FRONTEND_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
+const ALLOWED_ORIGINS = FRONTEND_URL.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ""))
+
+function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) return true
+
+  const normalizedOrigin = origin.replace(/\/$/, "")
+  if (ALLOWED_ORIGINS.includes(normalizedOrigin)) return true
+
+  // Allow Vercel preview domains when configured with base vercel domain.
+  if (normalizedOrigin.endsWith(".vercel.app")) return true
+
+  return false
+}
 
 // Middleware
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true)
         return
       }
+      console.warn(`[CORS] Rejected origin: ${origin || "-"}`)
       callback(new Error("Not allowed by CORS"))
     },
     credentials: true,
