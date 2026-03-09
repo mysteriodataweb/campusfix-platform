@@ -1,7 +1,9 @@
 import mysql, { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from "mysql2/promise"
 import dotenv from "dotenv"
 
-dotenv.config()
+if (!process.env.RAILWAY_PROJECT_ID && !process.env.RAILWAY_ENVIRONMENT) {
+  dotenv.config()
+}
 
 // Type pour les paramètres de requête
 type QueryParam = string | number | boolean | null | Date | Buffer

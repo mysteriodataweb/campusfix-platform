@@ -2,14 +2,34 @@
 import mysql from "mysql2/promise"
 import dotenv from "dotenv"
 
-dotenv.config()
+if (!process.env.RAILWAY_PROJECT_ID && !process.env.RAILWAY_ENVIRONMENT) {
+  dotenv.config()
+}
 
 function getSeedDbConfig() {
+  const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL
+  if (databaseUrl) {
+    const url = new URL(databaseUrl)
+    if (!url.protocol.startsWith("mysql")) {
+      throw new Error("DATABASE_URL/MYSQL_URL must use mysql:// protocol")
+    }
+
+    return {
+      host: url.hostname,
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      port: url.port ? parseInt(url.port, 10) : 3306,
+      databaseName: url.pathname.replace(/^\//, "") || "campusfixit",
+      multipleStatements: true,
+    }
+  }
+
   const host = process.env.DB_HOST || process.env.MYSQLHOST
   const user = process.env.DB_USER || process.env.MYSQLUSER
   const password = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || ""
   const portRaw = process.env.DB_PORT || process.env.MYSQLPORT || "3306"
   const port = parseInt(portRaw, 10)
+  const database = process.env.DB_NAME || process.env.MYSQLDATABASE || "campusfixit"
 
   if (!host || !user || Number.isNaN(port)) {
     throw new Error(
@@ -22,8 +42,13 @@ function getSeedDbConfig() {
     user,
     password,
     port,
+    databaseName: database,
     multipleStatements: true,
   }
+}
+
+function quoteIdentifier(name: string): string {
+  return `\`${name.replace(/`/g, "``")}\``
 }
 
 async function seed() {
@@ -40,19 +65,23 @@ async function seed() {
 
   try {
     // Connexion sans base de donnÃ©es pour pouvoir la crÃ©er
-    connection = await mysql.createConnection(getSeedDbConfig())
+    const seedConfig = getSeedDbConfig()
+    const { databaseName, ...connectionConfig } = seedConfig
+    connection = await mysql.createConnection(connectionConfig)
     console.log("âœ… Connexion Ã©tablie")
 
     // CrÃ©er la base de donnÃ©es
+    const quotedDbName = quoteIdentifier(databaseName)
+
     await connection.query(`
-      CREATE DATABASE IF NOT EXISTS campusfixit
+      CREATE DATABASE IF NOT EXISTS ${quotedDbName}
       CHARACTER SET utf8mb4
       COLLATE utf8mb4_unicode_ci
     `)
     console.log("âœ… Base de donnÃ©es crÃ©Ã©e")
 
     // Utiliser la base de donnÃ©es
-    await connection.query("USE campusfixit")
+    await connection.query(`USE ${quotedDbName}`)
 
     // CrÃ©er les tables
     await connection.query(`
@@ -77,14 +106,29 @@ async function seed() {
       ALTER TABLE users
       MODIFY role ENUM('manager', 'superadmin', 'reporter') NOT NULL
     `)
-    await connection.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
-    `)
-    await connection.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP NULL DEFAULT NULL
-    `)
+    try {
+      await connection.query(`
+        ALTER TABLE users
+        ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT FALSE
+      `)
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (code !== "ER_DUP_FIELDNAME") {
+        throw error
+      }
+    }
+
+    try {
+      await connection.query(`
+        ALTER TABLE users
+        ADD COLUMN email_verified_at TIMESTAMP NULL DEFAULT NULL
+      `)
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (code !== "ER_DUP_FIELDNAME") {
+        throw error
+      }
+    }
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS locations (

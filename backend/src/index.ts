@@ -4,7 +4,9 @@ import cookieParser from "cookie-parser"
 import dotenv from "dotenv"
 
 // Load environment variables
-dotenv.config()
+if (!process.env.RAILWAY_PROJECT_ID && !process.env.RAILWAY_ENVIRONMENT) {
+  dotenv.config()
+}
 
 // Import routes
 import authRoutes from "./routes/auth.js"

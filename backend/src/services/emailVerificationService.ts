@@ -11,15 +11,29 @@ let emailVerificationSchemaReady = false
 export async function ensureEmailVerificationSchema(): Promise<void> {
   if (emailVerificationSchemaReady) return
 
-  await execute(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
-  `)
+  try {
+    await execute(`
+      ALTER TABLE users
+      ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT FALSE
+    `)
+  } catch (error) {
+    const code = (error as { code?: string }).code
+    if (code !== "ER_DUP_FIELDNAME") {
+      throw error
+    }
+  }
 
-  await execute(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP NULL DEFAULT NULL
-  `)
+  try {
+    await execute(`
+      ALTER TABLE users
+      ADD COLUMN email_verified_at TIMESTAMP NULL DEFAULT NULL
+    `)
+  } catch (error) {
+    const code = (error as { code?: string }).code
+    if (code !== "ER_DUP_FIELDNAME") {
+      throw error
+    }
+  }
 
   await execute(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (

@@ -12,14 +12,30 @@ let emailVerificationSchemaReady = false;
 async function ensureEmailVerificationSchema() {
     if (emailVerificationSchemaReady)
         return;
-    await (0, db_js_1.execute)(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
-  `);
-    await (0, db_js_1.execute)(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP NULL DEFAULT NULL
-  `);
+    try {
+        await (0, db_js_1.execute)(`
+      ALTER TABLE users
+      ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+    }
+    catch (error) {
+        const code = error.code;
+        if (code !== "ER_DUP_FIELDNAME") {
+            throw error;
+        }
+    }
+    try {
+        await (0, db_js_1.execute)(`
+      ALTER TABLE users
+      ADD COLUMN email_verified_at TIMESTAMP NULL DEFAULT NULL
+    `);
+    }
+    catch (error) {
+        const code = error.code;
+        if (code !== "ER_DUP_FIELDNAME") {
+            throw error;
+        }
+    }
     await (0, db_js_1.execute)(`
     CREATE TABLE IF NOT EXISTS email_verification_tokens (
       token_hash VARCHAR(64) PRIMARY KEY,
