@@ -9,6 +9,9 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'CampusFix - Smart Campus Maintenance',
   description: 'Report and track campus maintenance issues instantly via QR codes.',
+  other: {
+    google: 'notranslate',
+  },
   icons: {
     icon: [
       {
@@ -34,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" translate="no" className="notranslate" suppressHydrationWarning>
       <body className="font-sans antialiased">
         {children}
         <Analytics />
