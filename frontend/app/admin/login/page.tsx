@@ -25,14 +25,17 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await res.json()
-      if (data.success && data.role === "superadmin") {
+      const contentType = res.headers.get("content-type") || ""
+      const isJson = contentType.includes("application/json")
+      const data = isJson ? await res.json() : null
+
+      if (res.ok && data?.success && data.role === "superadmin") {
         router.push("/admin/panel")
       } else {
-        setError("Invalid credentials")
+        setError(data?.error || "Invalid credentials")
       }
-    } catch {
-      setError("Something went wrong")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error")
     } finally {
       setLoading(false)
     }
