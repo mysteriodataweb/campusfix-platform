@@ -4,6 +4,7 @@ const express_1 = require("express");
 const reportService_js_1 = require("../services/reportService.js");
 const logService_js_1 = require("../services/logService.js");
 const emailService_js_1 = require("../services/emailService.js");
+const userService_js_1 = require("../services/userService.js");
 const reporterService_js_1 = require("../services/reporterService.js");
 const auth_js_1 = require("../middleware/auth.js");
 const router = (0, express_1.Router)();
@@ -15,6 +16,13 @@ const validIssueTypes = [
     "Furniture",
     "Other",
 ];
+function getFrontendBaseUrl() {
+    const configured = process.env.FRONTEND_PUBLIC_URL ||
+        process.env.FRONTEND_URL ||
+        "http://localhost:3000";
+    const first = configured.split(",")[0]?.trim() || "http://localhost:3000";
+    return first.replace(/\/$/, "");
+}
 // GET /api/reports - Get all reports (manager/superadmin only)
 router.get("/", auth_js_1.authenticate, (0, auth_js_1.authorize)("manager", "superadmin"), async (_req, res) => {
     try {
@@ -62,9 +70,7 @@ router.post("/", async (req, res) => {
             res.status(400).json({ error: "Invalid email address" });
             return;
         }
-        const id = await (0, reportService_js_1.generateReportId)();
         const report = {
-            id,
             location,
             issue_type,
             description,
@@ -72,16 +78,17 @@ router.post("/", async (req, res) => {
             reporter_name: normalizedReporterName || undefined,
             reporter_email: normalizedReporterEmail,
             status: "pending",
-            created_at: new Date().toISOString(),
             technician_notified: false,
         };
         await (0, reporterService_js_1.saveReporterEmailIfNew)(normalizedReporterEmail);
-        await (0, reportService_js_1.createReport)(report);
-        await (0, logService_js_1.addLog)(`New report submitted - ${id} - ${location}`, normalizedReporterName || "Anonymous");
-        const trackingUrl = `/track/${id}`;
-        (0, emailService_js_1.sendReportConfirmation)(report, trackingUrl);
-        (0, emailService_js_1.sendNewReportNotification)(report, "manager@campus.com");
-        res.json({ success: true, id, trackingUrl });
+        const createdReport = await (0, reportService_js_1.createReport)(report);
+        await (0, logService_js_1.addLog)(`New report submitted - ${createdReport.id} - ${location}`, normalizedReporterName || "Anonymous");
+        const trackingUrl = `${getFrontendBaseUrl()}/track/${createdReport.id}`;
+        await (0, emailService_js_1.sendReportConfirmation)(createdReport, trackingUrl);
+        const managers = await (0, userService_js_1.getUsersByRole)("manager");
+        const managerEmail = process.env.MANAGER_EMAIL || managers[0]?.email || "manager@campus.com";
+        await (0, emailService_js_1.sendNewReportNotification)(createdReport, managerEmail);
+        res.json({ success: true, id: createdReport.id, trackingUrl });
     }
     catch (error) {
         console.error("Create report error:", error);
@@ -121,7 +128,7 @@ router.post("/:id/notify", auth_js_1.authenticate, (0, auth_js_1.authorize)("man
             return;
         }
         await (0, reportService_js_1.updateReportNotified)(id);
-        (0, emailService_js_1.sendTechnicianNotification)(report, "technician@campus.com");
+        await (0, emailService_js_1.sendTechnicianNotification)(report, process.env.TECHNICIAN_EMAIL || "technician@campus.com");
         await (0, logService_js_1.addLog)(`Technician notified - ${id}`, "Manager");
         res.json({ success: true });
     }

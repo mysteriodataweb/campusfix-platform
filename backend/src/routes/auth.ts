@@ -99,7 +99,7 @@ router.post(
         process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`
       const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${token}`
 
-      sendEmailVerification(user.name, user.email, verificationUrl)
+      await sendEmailVerification(user.name, user.email, verificationUrl)
       res.json({ success: true })
     } catch (error) {
       console.error("Request email verification error:", error)

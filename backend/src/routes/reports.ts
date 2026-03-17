@@ -5,7 +5,6 @@ import {
   createReport,
   updateReportStatus,
   updateReportNotified,
-  generateReportId,
 } from "../services/reportService.js"
 import { addLog } from "../services/logService.js"
 import {
@@ -13,6 +12,7 @@ import {
   sendNewReportNotification,
   sendTechnicianNotification,
 } from "../services/emailService.js"
+import { getUsersByRole } from "../services/userService.js"
 import {
   isValidEmail,
   normalizeEmail,
@@ -31,6 +31,16 @@ const validIssueTypes: IssueType[] = [
   "Furniture",
   "Other",
 ]
+
+function getFrontendBaseUrl(): string {
+  const configured =
+    process.env.FRONTEND_PUBLIC_URL ||
+    process.env.FRONTEND_URL ||
+    "http://localhost:3000"
+
+  const first = configured.split(",")[0]?.trim() || "http://localhost:3000"
+  return first.replace(/\/$/, "")
+}
 
 // GET /api/reports - Get all reports (manager/superadmin only)
 router.get(
@@ -91,9 +101,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    const id = await generateReportId()
-    const report: Report = {
-      id,
+    const report: Omit<Report, "id" | "created_at" | "updated_at" | "resolved_at"> = {
       location,
       issue_type,
       description,
@@ -101,22 +109,24 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       reporter_name: normalizedReporterName || undefined,
       reporter_email: normalizedReporterEmail,
       status: "pending",
-      created_at: new Date().toISOString(),
       technician_notified: false,
     }
 
     await saveReporterEmailIfNew(normalizedReporterEmail)
-    await createReport(report)
+    const createdReport = await createReport(report)
     await addLog(
-      `New report submitted - ${id} - ${location}`,
+      `New report submitted - ${createdReport.id} - ${location}`,
       normalizedReporterName || "Anonymous"
     )
 
-    const trackingUrl = `/track/${id}`
-    sendReportConfirmation(report, trackingUrl)
-    sendNewReportNotification(report, "manager@campus.com")
+    const trackingUrl = `${getFrontendBaseUrl()}/track/${createdReport.id}`
+    await sendReportConfirmation(createdReport, trackingUrl)
 
-    res.json({ success: true, id, trackingUrl })
+    const managers = await getUsersByRole("manager")
+    const managerEmail = process.env.MANAGER_EMAIL || managers[0]?.email || "manager@campus.com"
+    await sendNewReportNotification(createdReport, managerEmail)
+
+    res.json({ success: true, id: createdReport.id, trackingUrl })
   } catch (error) {
     console.error("Create report error:", error)
     res.status(500).json({ error: "Internal server error" })
@@ -173,7 +183,10 @@ router.post(
       }
 
       await updateReportNotified(id)
-      sendTechnicianNotification(report, "technician@campus.com")
+      await sendTechnicianNotification(
+        report,
+        process.env.TECHNICIAN_EMAIL || "technician@campus.com"
+      )
       await addLog(`Technician notified - ${id}`, "Manager")
 
       res.json({ success: true })

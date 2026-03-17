@@ -22,6 +22,7 @@ function ReportFormContent() {
   const [reporterEmail, setReporterEmail] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -39,6 +40,7 @@ function ReportFormContent() {
     if (!issueType || !description || !location || !reporterEmail.trim()) return
 
     setLoading(true)
+    setError("")
     try {
       const res = await fetch("/api/report", {
         method: "POST",
@@ -53,12 +55,30 @@ function ReportFormContent() {
         }),
       })
 
-      const data = await res.json()
-      if (data.success) {
-        router.push(`/confirmation/${data.id}`)
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(data?.error || "Failed to submit report")
+        return
       }
+
+      if (data?.id) {
+        router.push(`/confirmation/${data.id}`)
+        return
+      }
+
+      if (data?.trackingUrl) {
+        if (String(data.trackingUrl).startsWith("http")) {
+          window.location.href = data.trackingUrl
+        } else {
+          router.push(data.trackingUrl)
+        }
+        return
+      }
+
+      setError("Report submitted but no tracking id returned")
     } catch {
-      // handle error
+      setError("Failed to submit report")
     } finally {
       setLoading(false)
     }
@@ -211,6 +231,9 @@ function ReportFormContent() {
           </div>
 
           {/* Submit */}
+          {error && (
+            <p className="text-sm text-red-600">{error}</p>
+          )}
           <Button
             type="submit"
             disabled={!issueType || !description || !location || !reporterEmail.trim() || loading}

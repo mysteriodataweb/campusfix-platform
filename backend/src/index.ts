@@ -96,8 +96,8 @@ async function start() {
   // Test database connection
   const dbConnected = await testConnection()
   if (!dbConnected) {
-    console.error("❌ Impossible de se connecter à la base de données")
-    console.log("💡 Vérifiez vos paramètres dans le fichier .env")
+    console.error(" Impossible de se connecter à la base de données")
+    console.log("Vérifiez vos paramètres dans le fichier .env")
     process.exit(1)
   }
 

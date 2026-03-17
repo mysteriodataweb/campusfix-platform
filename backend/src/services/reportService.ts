@@ -1,9 +1,9 @@
-import { query, execute, getConnection } from "../config/db.js"
+import { query, execute } from "../config/db.js"
 import { RowDataPacket } from "mysql2"
 import type { Report, IssueType, Status } from "../types/index.js"
 
 interface ReportRow extends RowDataPacket {
-  id: string
+  id: number
   location: string
   issue_type: IssueType
   description: string
@@ -17,10 +17,7 @@ interface ReportRow extends RowDataPacket {
   technician_notified: boolean
 }
 
-interface CounterRow extends RowDataPacket {
-  name: string
-  value: number
-}
+type NewReportInput = Omit<Report, "id" | "created_at" | "updated_at" | "resolved_at">
 
 export async function getReports(): Promise<Report[]> {
   const rows = await query<ReportRow[]>(
@@ -29,18 +26,17 @@ export async function getReports(): Promise<Report[]> {
   return rows.map(mapReportRow)
 }
 
-export async function getReportById(id: string): Promise<Report | null> {
+export async function getReportById(id: string | number): Promise<Report | null> {
   const rows = await query<ReportRow[]>("SELECT * FROM reports WHERE id = ?", [id])
   if (rows.length === 0) return null
   return mapReportRow(rows[0])
 }
 
-export async function createReport(report: Omit<Report, "updated_at">): Promise<Report> {
-  await execute(
-    `INSERT INTO reports (id, location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+export async function createReport(report: NewReportInput): Promise<Report> {
+  const result = await execute(
+    `INSERT INTO reports (location, issue_type, description, image_url, reporter_name, reporter_email, status, technician_notified)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      report.id,
       report.location,
       report.issue_type,
       report.description,
@@ -51,7 +47,12 @@ export async function createReport(report: Omit<Report, "updated_at">): Promise<
       report.technician_notified,
     ]
   )
-  return report as Report
+
+  const created = await getReportById(result.insertId)
+  if (!created) {
+    throw new Error("Failed to fetch created report")
+  }
+  return created
 }
 
 export async function updateReportStatus(
@@ -76,34 +77,9 @@ export async function updateReportNotified(id: string): Promise<boolean> {
   return result.affectedRows > 0
 }
 
-export async function generateReportId(): Promise<string> {
-  const connection = await getConnection()
-  try {
-    await connection.beginTransaction()
-
-    await connection.execute(
-      "UPDATE counters SET value = value + 1 WHERE name = 'report'"
-    )
-
-    const [rows] = await connection.query<CounterRow[]>(
-      "SELECT value FROM counters WHERE name = 'report'"
-    )
-
-    await connection.commit()
-
-    const counter = rows[0]?.value || 1
-    return `RPT-${String(counter).padStart(3, "0")}`
-  } catch (error) {
-    await connection.rollback()
-    throw error
-  } finally {
-    connection.release()
-  }
-}
-
 function mapReportRow(row: ReportRow): Report {
   return {
-    id: row.id,
+    id: String(row.id),
     location: row.location,
     issue_type: row.issue_type,
     description: row.description,

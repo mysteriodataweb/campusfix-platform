@@ -146,7 +146,7 @@ async function seed() {
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS reports (
-        id VARCHAR(50) PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         location VARCHAR(100) NOT NULL,
         issue_type ENUM('Electricity', 'IT', 'Internet', 'Plumbing', 'Furniture', 'Other') NOT NULL,
         description TEXT NOT NULL,
@@ -248,18 +248,16 @@ async function seed() {
 
     // InsÃ©rer les signalements de test
     await connection.query(
-      `INSERT INTO reports (id, location, issue_type, description, reporter_name, reporter_email, status, technician_notified, created_at) VALUES
-       ('RPT-001', 'A101', 'Electricity', 'Ceiling light flickering since this morning, affecting visibility during class.', 'Amadou Diallo', 'amadou@campus.com', 'pending', FALSE, NOW()),
-       ('RPT-002', 'Labo-Info-3', 'Internet', 'No internet connection on any computer in the lab.', NULL, NULL, 'in_progress', TRUE, DATE_SUB(NOW(), INTERVAL 1 DAY)),
-       ('RPT-003', 'Bibliotheque', 'Furniture', 'Broken chair near the window reading section.', NULL, NULL, 'resolved', TRUE, DATE_SUB(NOW(), INTERVAL 2 DAY))
-       ON DUPLICATE KEY UPDATE description = VALUES(description)`
+      `INSERT INTO reports (location, issue_type, description, reporter_name, reporter_email, status, technician_notified, created_at) VALUES
+       ('A101', 'Electricity', 'Ceiling light flickering since this morning, affecting visibility during class.', 'Amadou Diallo', 'amadou@campus.com', 'pending', FALSE, NOW()),
+       ('Labo-Info-3', 'Internet', 'No internet connection on any computer in the lab.', NULL, NULL, 'in_progress', TRUE, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+       ('Bibliotheque', 'Furniture', 'Broken chair near the window reading section.', NULL, NULL, 'resolved', TRUE, DATE_SUB(NOW(), INTERVAL 2 DAY))`
     )
     console.log("âœ… Signalements de test crÃ©Ã©s")
 
     // Initialiser les compteurs
     await connection.query(
       `INSERT INTO counters (name, value) VALUES
-       ('report', 3),
        ('location', 3)
        ON DUPLICATE KEY UPDATE value = VALUES(value)`
     )
